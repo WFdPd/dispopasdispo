@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>dispoPASdispo</title>
+<meta name="theme-color" content="#2f7fd1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="dispoPASdispo">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --vert:#7cc243; --vert-fonce:#4f9a1f; --vert-clair:#e9f6dc;
+  --rose:#f2668f; --rose-clair:#fde6ee;
+  --rouge:#d93a3a; --rouge-clair:#fdeaea;
+  --bleu:#2f7fd1; --bleu-clair:#e3effb;
+  --texte:#1f2933; --gris:#6b7785; --bord:#d9e0e7; --fond:#f1f4f7;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--texte);background:var(--fond);display:flex;justify-content:center}
+#phone{width:100%;max-width:440px;min-height:100vh;background:#fff;display:flex;flex-direction:column;box-shadow:0 0 30px rgba(0,0,0,.08)}
+header.top{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--bord);background:#fff;position:sticky;top:0;z-index:5}
+header.top .logo{width:34px;height:34px;flex:none}
+header.top .titre{font-weight:700;font-size:17px;flex:1;line-height:1.1}
+header.top .titre small{display:block;font-weight:400;color:var(--gris);font-size:12px}
+.bell{position:relative;background:none;border:1px solid var(--bord);border-radius:10px;padding:7px 9px;cursor:pointer;font-size:18px;line-height:1}
+.bell .dot{position:absolute;top:-5px;right:-5px;min-width:18px;height:18px;border-radius:9px;background:var(--rouge);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 4px}
+.quit{background:none;border:none;color:var(--gris);font-size:13px;cursor:pointer;text-decoration:underline}
+main{flex:1;padding:18px 16px 90px;overflow-y:auto}
+h1{font-size:22px;margin:4px 0 6px}
+h2{font-size:17px;margin:18px 0 8px}
+p.aide{color:var(--gris);font-size:14px;margin:4px 0 14px;line-height:1.4}
+label{display:block;font-size:13px;font-weight:600;margin:12px 0 4px}
+input,select,textarea{width:100%;padding:12px;font-size:16px;border:1.5px solid var(--bord);border-radius:10px;background:#fff;color:var(--texte);font-family:inherit}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--bleu)}
+button.btn{display:block;width:100%;padding:14px;font-size:16px;font-weight:700;border-radius:12px;border:2px solid var(--bord);background:#fff;cursor:pointer;margin-top:14px;color:var(--texte)}
+button.btn:active{transform:scale(.99)}
+button.btn.vert{border-color:var(--vert);background:var(--vert);color:#fff}
+button.btn.bleu{border-color:var(--bleu);background:var(--bleu);color:#fff}
+button.btn.rose{border-color:var(--rose);background:var(--rose);color:#fff}
+button.btn.petit{display:inline-block;width:auto;padding:8px 12px;font-size:14px;margin-top:0;border-radius:9px}
+button.btn.gris{color:var(--gris)}
+.accueil{text-align:center;padding-top:30px}
+.accueil svg{width:130px;height:auto}
+.accueil h1{font-size:30px;margin-top:10px}
+.onglets{display:flex;border:1.5px solid var(--bord);border-radius:11px;overflow:hidden;margin-bottom:6px}
+.onglets button{flex:1;padding:11px;border:none;background:#fff;font-size:15px;font-weight:600;cursor:pointer;color:var(--gris)}
+.onglets button.actif{background:var(--bleu-clair);color:var(--bleu)}
+.msg{padding:11px 13px;border-radius:10px;font-size:14px;margin:12px 0;line-height:1.4}
+.msg.err{background:var(--rouge-clair);color:#8e1f1f}
+.msg.ok{background:var(--vert-clair);color:#2f6310}
+.msg.info{background:var(--bleu-clair);color:#1c5a9c}
+.carte-statut{border:3px solid var(--bord);border-radius:18px;padding:16px;margin:12px 0;background:#fff}
+.carte-statut.vert{border-color:var(--vert)}
+.carte-statut.rouge{border-color:var(--rouge)}
+.carte-statut.vert.actif{background:var(--vert-clair)}
+.carte-statut.rouge.actif{background:var(--rouge-clair)}
+.carte-statut .gros{font-size:20px;font-weight:700;text-align:center;cursor:pointer;padding:10px 0}
+.carte-statut .date{display:flex;align-items:center;gap:10px;margin-top:6px}
+.carte-statut .date span{font-size:14px;white-space:nowrap;border:1.5px solid var(--bord);padding:10px;border-radius:9px;background:#fff}
+.btn-messagerie{border:3px solid var(--bleu)!important;border-radius:16px!important;font-size:18px!important;padding:16px!important;background:#fff!important;color:var(--texte)!important}
+.badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:12px;font-weight:700}
+.badge.vert{background:var(--vert-clair);color:#2f6310}
+.badge.rouge{background:var(--rouge-clair);color:#8e1f1f}
+.badge.orange{background:#fff1da;color:#8a5a00}
+.badge.bleu{background:var(--bleu-clair);color:#1c5a9c}
+.badge.gris{background:#eceff2;color:var(--gris)}
+.liste .item{border:1.5px solid var(--bord);border-radius:14px;padding:13px;margin:10px 0;background:#fff}
+.liste .item.non-lu{border-color:var(--bleu);background:#f7fbff}
+.item .ligne{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.item .nom{font-weight:700;font-size:16px}
+.item .sous{color:var(--gris);font-size:13px;margin-top:3px;line-height:1.4}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+nav.bas{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:440px;display:flex;background:#fff;border-top:1px solid var(--bord);z-index:6}
+nav.bas button{flex:1;padding:10px 4px 12px;border:none;background:none;font-size:12px;color:var(--gris);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;position:relative}
+nav.bas button .ic{font-size:21px}
+nav.bas button.actif{color:var(--bleu);font-weight:700}
+nav.bas .pastille{position:absolute;top:4px;right:calc(50% - 22px);background:var(--rouge);color:#fff;border-radius:9px;min-width:17px;height:17px;font-size:10px;display:flex;align-items:center;justify-content:center;padding:0 4px}
+.modal-fond{position:fixed;inset:0;background:rgba(20,30,40,.45);display:flex;align-items:flex-end;justify-content:center;z-index:20}
+.modal{background:#fff;width:100%;max-width:440px;border-radius:20px 20px 0 0;padding:18px 16px 24px;max-height:90vh;overflow:auto}
+.pied{font-size:11px;color:var(--gris);text-align:center;margin-top:26px;line-height:1.5}
+.vide{text-align:center;color:var(--gris);padding:26px 10px;font-size:14px}
+.ligne-form{display:flex;gap:10px}
+.ligne-form>div{flex:1}
+
+</style>
+</head>
+<body>
+<div id="phone"><div id="app"></div></div>
+<script type="module" src="app.js"></script>
+<script>
+if('serviceWorker' in navigator){ window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(()=>{})); }
+</script>
+</body>
+</html>

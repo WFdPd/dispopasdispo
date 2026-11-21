@@ -1,0 +1,84 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function roleDoc() { return get(/databases/$(database)/documents/roles/$(request.auth.uid)).data; }
+    function hasRoleDoc() { return signedIn() && exists(/databases/$(database)/documents/roles/$(request.auth.uid)); }
+    function isAgence() { return hasRoleDoc() && roleDoc().role == 'agence'; }
+    function isInterim() { return hasRoleDoc() && roleDoc().role == 'interim'; }
+    function myTel() { return roleDoc().tel; }
+
+    // Code d'activation valide (existant, non expiré, du bon type, identique à celui fourni)
+    function codeOk(tel, kind, code) {
+      let a = get(/databases/$(database)/documents/activation/$(tel)).data;
+      return exists(/databases/$(database)/documents/activation/$(tel))
+        && a.kind == kind && a.code == code && a.expires > request.time;
+    }
+
+    // ---------- Intérimaires ----------
+    match /interim/{tel} {
+      allow read: if isAgence() || (isInterim() && myTel() == tel);
+      allow create, delete: if isAgence();
+      allow update: if isAgence()
+        // l'intérimaire met à jour sa disponibilité et ses qualifications uniquement
+        || (isInterim() && myTel() == tel && resource.data.uid == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['status','from','until','updatedAt','qualifs','qualif']))
+        // activation du compte (une seule fois : uid encore vide, Préfecture OK, code valide)
+        || (signedIn() && resource.data.uid == null && resource.data.pref == 'ok'
+            && request.resource.data.uid == request.auth.uid
+            && request.resource.data.registered == true
+            && request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['uid','registered','activationCode'])
+            && codeOk(tel, 'interim', request.resource.data.activationCode));
+    }
+
+    // ---------- Équipe agence ----------
+    match /staff/{tel} {
+      allow read, create, delete: if isAgence();
+      allow update: if isAgence()
+        || (signedIn() && resource.data.uid == null
+            && request.resource.data.uid == request.auth.uid
+            && request.resource.data.registered == true
+            && request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['uid','registered','activationCode'])
+            && codeOk(tel, 'staff', request.resource.data.activationCode));
+    }
+
+    // ---------- Codes d'activation (agence uniquement ; lus par les règles ci-dessus) ----------
+    match /activation/{tel} {
+      allow read, write: if isAgence();
+    }
+
+    // ---------- Rôles ----------
+    match /roles/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow delete: if isAgence();
+      // création uniquement dans le même lot que l'activation d'une fiche (intérimaire ou équipe)
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['role','tel'])
+        && (
+          (request.resource.data.role == 'interim'
+            && get(/databases/$(database)/documents/interim/$(request.resource.data.tel)).data.uid == null
+            && getAfter(/databases/$(database)/documents/interim/$(request.resource.data.tel)).data.uid == request.auth.uid)
+          ||
+          (request.resource.data.role == 'agence'
+            && get(/databases/$(database)/documents/staff/$(request.resource.data.tel)).data.uid == null
+            && getAfter(/databases/$(database)/documents/staff/$(request.resource.data.tel)).data.uid == request.auth.uid)
+        );
+    }
+
+    // ---------- Demandes de confirmation (messagerie) ----------
+    match /demandes/{id} {
+      allow read: if isAgence() || (isInterim() && resource.data.tel == myTel());
+      allow create, delete: if isAgence();
+      allow update: if isAgence()
+        || (isInterim() && resource.data.tel == myTel()
+            && request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['status','comment','readI','readA','repTs']));
+    }
+
+    match /{document=**} { allow read, write: if false; }
+  }
+}
