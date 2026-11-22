@@ -41,7 +41,7 @@ const CODE_JOURS = 7;
 function genCode(){ const a = new Uint32Array(8); crypto.getRandomValues(a); return [...a].map(n => CODE_ALPHABET[n % CODE_ALPHABET.length]).join(''); }
 const fmtCode = c => String(c||'').replace(/(.{4})(.{4})/, '$1-$2');
 const newActivation = kind => ({ code: genCode(), expires: Timestamp.fromMillis(Date.now() + CODE_JOURS*864e5), kind });
-const msTs = t => (t && typeof t.toMillis === 'function') ? t.toMillis() : 0;
+const msTs = t => (t && typeof t.toMillis === 'function') ? t.toMillis() : (typeof t === 'number' ? t : 0);
 
 /* ---------- Couche de stockage (Firestore) ---------- */
 const Store = (() => {
