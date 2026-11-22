@@ -410,18 +410,18 @@ const actions = {
         catch(e){ if(e.code!=='auth/email-already-in-use') throw e; }
       }
       if(!user) throw { code:'dpd/trop-de-comptes' };
-      let claimed = false;
+      let claimed = false; const dbg = [];
       for(const [coll, role] of [['interim','interim'], ['staff','agence']]){
         try{
           const b = writeBatch(db);
           b.update(doc(db, coll, tel), { uid:user.uid, registered:true, activationCode:code });
           b.set(doc(db, 'roles', user.uid), { role, tel });
           await b.commit(); claimed = true; break;
-        }catch(e){ if(e.code!=='permission-denied' && e.code!=='not-found') throw e; }
+        }catch(e){ dbg.push(coll+':'+(e.code||e.message)); if(e.code!=='permission-denied' && e.code!=='not-found') throw e; }
       }
       if(!claimed){
         await deleteUser(user); registering = false;
-        return go({ loading:false, msg: err("Création impossible : numéro inconnu, code incorrect ou expiré, ou compte déjà activé. Vérifiez auprès de l'agence.") });
+        return go({ loading:false, msg: err("Création impossible : numéro inconnu, code incorrect ou expiré, ou compte déjà activé. Vérifiez auprès de l'agence. [détail : "+dbg.join(' | ')+"]") });
       }
       try{ localStorage.setItem('dpd_v_'+tel, String(usedV)); }catch(e){}
       registering = false;
